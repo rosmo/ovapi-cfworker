@@ -1,0 +1,6 @@
+name = "ovapi-stops"
+main = "src/index.js"
+compatibility_date = "2024-02-23"
+
+[vars]
+LINES="GVB_5_2=30002125,GVB_17_1=30006030"
