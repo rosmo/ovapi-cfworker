@@ -1,9 +1,45 @@
 export default {
 	async fetch(request, env, ctx) {
-		let data = await loadData(env.LINES);
-		return new Response(JSON.stringify(data));
+		// ovapi.nl has an invalid certificate for now
+		let data = "";
+		try {
+			data = await loadData(env.LINES);
+
+			if (env.ovstops_weather !== undefined && env.WEATHER_LAT !== undefined && env.WEATHER_LON !== undefined) {
+				let forecast = null;
+				let cachedForecast = await env.ovstops_weather.get("weather");
+				if (cachedForecast !== null) {
+					try {
+						forecast = JSON.parse(cachedForecast);
+					} catch (e) {
+						cachedForecast = null;
+					}
+				}
+				if (cachedForecast === null) {
+					forecast = await loadWeather(parseFloat(env.WEATHER_LAT), parseFloat(env.WEATHER_LON));
+					await env.ovstops_weather.put("weather", JSON.stringify(forecast), { expirationTtl: 60*15 });
+				}
+				if (forecast !== null) {
+					data["weather"] = forecast;
+				} 
+			}
+			return new Response(JSON.stringify(data));
+		} catch (error) {
+			return new Response(error + "\n" + error.stack + "\nData was: " + data);
+		}
 	},
 };
+
+async function loadWeather(lat, lon) {
+	const Buienradar = require("buienradar/lib/Buienradar");
+	const br = new Buienradar({
+		lat: lat,
+		lon: lon,
+	});
+	 
+	let forecast = await br.getNextForecast();
+	return forecast;
+}
 
 async function loadData(lines) {
 	const headers = {
@@ -21,9 +57,13 @@ async function loadData(lines) {
 		linesToFetch.push(ls[0]);
 		stopsForLines[ls[0]] = ls[1];
 	}
-	const data = await fetch("https://v0.ovapi.nl/line/" + linesToFetch.join(","), {
+	console.log("Fetching: " + "http://v0.ovapi.nl/line/" + linesToFetch.join(","));
+	const data = await fetch("http://v0.ovapi.nl/line/" + linesToFetch.join(","), {
 		headers: headers,
 	});
+	if (!data.ok) {
+		throw new Error("Failed fetching URL: " + tripData.status + "\nResponse was: " + tripData.text());
+	}
 	const json = await data.json();
 	let stopNames = {};
 	let tripCandidates = [];
@@ -49,9 +89,13 @@ async function loadData(lines) {
 			}
 		}
 	}
-	const tripData = await fetch("https://v0.ovapi.nl/journey/" + tripCandidates.join(","), {
+	console.log("Fetching: " + "http://v0.ovapi.nl/journey/" + tripCandidates.join(","));
+	const tripData = await fetch("http://v0.ovapi.nl/journey/" + tripCandidates.join(","), {
 		headers: headers,
 	});
+	if (!tripData.ok) {
+		throw new Error("Failed fetching URL: " + tripData.status + "\nResponse was: " + tripData.text());
+	}
 	const tripJson = await tripData.json();
 	let journeys = {};
 	for (const k in tripJson) {
