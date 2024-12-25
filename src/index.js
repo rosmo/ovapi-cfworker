@@ -64,6 +64,7 @@ async function loadWeather(stationId, lat, lon, headers) {
 					forecast[key] = value;
 				}
 			}
+			forecast["name"] = station["stationname"].replace("Meetstation ", "") + ", " + station["regio"];
 		}
 	}
 	return forecast;
