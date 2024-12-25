@@ -6,10 +6,11 @@ compatibility_flags = [ "nodejs_compat" ]
 [vars]
 LINES="GVB_22_1=30002061,GVB_48_2=30002012,GVB_5_2=30005077"
 NODE_TLS_REJECT_UNAUTHORIZED="0"
-WEATHER_LAT="52.22377"
-WEATHER_LON="6.87236"
+WEATHER_LAT="52.39"
+WEATHER_LON="4.88"
+WEATHER_ID="6240"
 
 [[kv_namespaces]]
 binding = "ovstops_weather"
-id = "add binding id"
-preview_id = "add preview binding id"
+id = "ed9a85419e6c449a8ce6f8f41a62d821"
+preview_id = "8753240553ec4279b0d002aafe07de9f"

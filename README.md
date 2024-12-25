@@ -19,17 +19,16 @@ Create the KV cache for weather: `npx wrangler kv namespace create ovstops-weath
 
 Now you can run `npx wrangler deploy`.
 
-
 ## Configuration
 
 The worker is configured via environment variables via [`wranger.toml`](wranger.toml).
 
 - `LINES`: Comma separated values for lines to fetch. Format for each line is `[company]_[linenumber]_[direction]=[stop_id]`.
-  Company can be eg. `GVB`. Line number is something like `5` for tram 5. Direction is either `1` or `2`. 
-- `WEATHER_LAT`: latitude for fetching the weather.
-- `WEATHER_LON`: longitude for the weather.
+  Company can be eg. `GVB`. Line number is something like `5` for tram 5. Direction is either `1` or `2`.
+- `WEATHER_ID`: Weather station ID (see [station IDs](https://data.buienradar.nl/2.0/feed/json)).
+- `WEATHER_LAT`: Latitude for fetching the weather. Please only use 2 fractional digits as otherwise you get redirected.
+- `WEATHER_LON`: Longitude for the weather. Please only use 2 fractional digits as otherwise you get redirected.
 - `NODE_TLS_REJECT_UNAUTHORIZED`: set to `0` to disable TLS cert verification.
-
 
 ## Finding out your stops
 
