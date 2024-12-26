@@ -105,7 +105,7 @@ async function loadData(lines, adjustments, headers) {
 			for (const ak in actuals) {
 				const trip = actuals[ak];
 				stopNames[trip["TimingPointCode"]] = trip["TimingPointName"];
-				if (["DRIVING", "PLANNED"].includes(trip["TripStopStatus"])) {
+				if (["DRIVING", "PLANNED", "ARRIVED"].includes(trip["TripStopStatus"])) {
 					tripCandidates.push(ak);
 				}
 			}
