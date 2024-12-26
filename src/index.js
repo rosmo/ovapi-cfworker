@@ -8,12 +8,11 @@ export default {
 			"Cache-Control": "no-cache",
 		};
 		try {
-			data = await loadData(env.LINES, headers);
+			data = await loadData(env.LINES, env.LINEADJUST, headers);
 
 			if (env.ovstops_weather !== undefined && env.WEATHER_LAT !== undefined && env.WEATHER_LON !== undefined) {
 				let forecast = null;
 				let cachedForecast = await env.ovstops_weather.get("weather");
-				cachedForecast = null;
 				if (cachedForecast !== null) {
 					try {
 						forecast = JSON.parse(cachedForecast);
@@ -23,7 +22,7 @@ export default {
 				}
 				if (cachedForecast === null) {
 					forecast = await loadWeather(env.WEATHER_ID, parseFloat(env.WEATHER_LAT), parseFloat(env.WEATHER_LON), headers);
-					await env.ovstops_weather.put("weather", JSON.stringify(forecast), { expirationTtl: 60*15 });
+					ctx.waitUntil(env.ovstops_weather.put("weather", JSON.stringify(forecast), { expirationTtl: 60*15 }))   ;
 				}
 				if (forecast !== null) {
 					data["weather"] = forecast;
@@ -70,15 +69,26 @@ async function loadWeather(stationId, lat, lon, headers) {
 	return forecast;
 }
 
-async function loadData(lines, headers) {
+async function loadData(lines, adjustments, headers) {
 	const linesSplit = lines.split(",");
 	let linesToFetch = [];
 	let stopsForLines = {};
 	for (const line of linesSplit) {
 		const ls = line.split("=", 2);
 		linesToFetch.push(ls[0]);
-		stopsForLines[ls[0]] = ls[1];
+		stopsForLines[ls[0]] = ls[1].split("/");
 	}
+
+	let adj = {};
+	if (adjustments !== undefined && adjustments != "") {
+		const adjSplit = adjustments.split(",");
+		for (const a of adjSplit) {
+			const aa = a.split("=");
+			const ast = aa[1].split("/")
+			adj[aa[0]] = { "offset": parseFloat(ast[0]) * 1000, "name": ast[1].trim() };
+		}
+	}
+
 	console.log("Fetching: " + "http://v0.ovapi.nl/line/" + linesToFetch.join(","));
 	const data = await fetch("http://v0.ovapi.nl/line/" + linesToFetch.join(","), {
 		headers: new Map([headers, { "Accept": "application/json" }]),
@@ -125,16 +135,22 @@ async function loadData(lines, headers) {
 			const stops = tripJson[k]["Stops"];
 			for (const sk in stops) {
 				const lineId = stops[sk]["OperatorCode"] + "_" + stops[sk]["LinePlanningNumber"] + "_" + stops[sk]["LineDirection"];
-				if (stops[sk].hasOwnProperty("TimingPointCode") && stops[sk]["TimingPointCode"] == stopsForLines[lineId]) {
-					const timeTarget = Date.parse(stops[sk]["TargetArrivalTime"]);
-					const timeEstimated = Date.parse(stops[sk]["ExpectedArrivalTime"]);
-					const timeDifference = timeEstimated - timeTarget;
+				if (stops[sk].hasOwnProperty("TimingPointCode") && stopsForLines[lineId].includes(stops[sk]["TimingPointCode"])) {
+					let timeTarget = Date.parse(stops[sk]["TargetArrivalTime"]);
+					let timeEstimated = Date.parse(stops[sk]["ExpectedArrivalTime"]);
+					let timeDifference = timeEstimated - timeTarget;
+					let stopName = stopNames[stops[sk]["TimingPointCode"]];
+					if (adj.hasOwnProperty(lineId)) {
+						stopName = adj[lineId]["name"];
+						timeTarget += adj[lineId]["offset"] * 60;
+						timeEstimated += adj[lineId]["offset"] * 60;
+					}
 					const stopInfo = {
 						"line_no": stops[sk]["LinePublicNumber"],
 						"line": stops[sk]["LineName"],
 						"destination": stops[sk]["DestinationName50"],
 						"transport": stops[sk]["TransportType"],
-						"stop": stopNames[stops[sk]["TimingPointCode"]],
+						"stop": stopName,
 						"status": stops[sk]["TripStopStatus"],
 						"time_target": timeTarget,
 						"time_estimated": timeEstimated,

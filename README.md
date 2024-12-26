@@ -24,7 +24,9 @@ Now you can run `npx wrangler deploy`.
 The worker is configured via environment variables via [`wranger.toml`](wranger.toml).
 
 - `LINES`: Comma separated values for lines to fetch. Format for each line is `[company]_[linenumber]_[direction]=[stop_id]`.
-  Company can be eg. `GVB`. Line number is something like `5` for tram 5. Direction is either `1` or `2`.
+  Company can be eg. `GVB`. Line number is something like `5` for tram 5. Direction is either `1` or `2`. Multipe stop IDs
+  can be separated via a forward slash.
+- `LINEADJUST`: Adjust line with a minute offset and stop name (eg. `GVB_48_2=2/Haparandaweg` to add 2 minutes and rename stop)
 - `WEATHER_ID`: Weather station ID (see [station IDs](https://data.buienradar.nl/2.0/feed/json)).
 - `WEATHER_LAT`: Latitude for fetching the weather. Please only use 2 fractional digits as otherwise you get redirected.
 - `WEATHER_LON`: Longitude for the weather. Please only use 2 fractional digits as otherwise you get redirected.
