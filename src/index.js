@@ -105,7 +105,7 @@ async function loadData(lines, adjustments, headers) {
 			for (const ak in actuals) {
 				const trip = actuals[ak];
 				stopNames[trip["TimingPointCode"]] = trip["TimingPointName"];
-				if (["DRIVING", "PLANNED", "ARRIVED"].includes(trip["TripStopStatus"])) {
+				if (["DRIVING", "PLANNED", "ARRIVED", "PASSED"].includes(trip["TripStopStatus"])) {
 					tripCandidates.push(ak);
 				}
 			}
@@ -140,10 +140,19 @@ async function loadData(lines, adjustments, headers) {
 					let timeEstimated = Date.parse(stops[sk]["ExpectedArrivalTime"]);
 					let timeDifference = timeEstimated - timeTarget;
 					let stopName = stopNames[stops[sk]["TimingPointCode"]];
+					let stopStatus = stops[sk]["TripStopStatus"];
+					let okToAdd = true;
 					if (adj.hasOwnProperty(lineId)) {
 						stopName = adj[lineId]["name"];
 						timeTarget += adj[lineId]["offset"] * 60;
 						timeEstimated += adj[lineId]["offset"] * 60;
+						if (stopStatus == "PASSED") {
+							stopStatus = "ARRIVING";
+						}
+					} else {
+						if (stopStatus == "PASSED") {
+							okToAdd = false;
+						}
 					}
 					const stopInfo = {
 						"line_no": stops[sk]["LinePublicNumber"],
@@ -159,7 +168,9 @@ async function loadData(lines, adjustments, headers) {
 					if (!journeys.hasOwnProperty(lineId)) {
 						journeys[lineId] = [];
 					}
-					journeys[lineId].push(stopInfo);
+					if (okToAdd) {
+						journeys[lineId].push(stopInfo);
+					}
 				}
 			}
 		}
